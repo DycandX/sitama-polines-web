@@ -1,0 +1,50 @@
+buat password dari Hash::make('password baru') via Tinker
+
+//buat user dari tabel dosen
+INSERT INTO `users`(`name`, `email`, `email_verified_at`, `password`, `remember_token`, `created_at`, `updated_at`) 
+SELECT dosen_nama,email,NOW(),'$2y$10$VydOqbosOwRrdjgrrYy2H..ccivRLNNZ1wDZJA5GTDPjDNdua3b8C','$2y$10$VydOqbosOwRrdjgrrYy2H..ccivRLNNZ1wDZJA5GTDPjDNdua3b8C',NOW(),NOW() FROM dosen;
+
+//assign roles dosen dari tabel users dan dosen
+INSERT INTO model_has_roles
+SELECT 3,'App\\Models\\User',U.id FROM `users` U JOIN dosen D ON U.email = D.email;
+
+//buat user dari tabel students (import dari API polines)
+INSERT INTO `users`(`name`, `email`, `email_verified_at`, `password`, `remember_token`, `created_at`, `updated_at`) SELECT Nama,Email,NOW(),'$2y$10$EfdZm6JCofc0Vv8ZKN7UI.UxArp10HSipXr0UlM4.a3S6qv1u51f6','$2y$10$EfdZm6JCofc0Vv8ZKN7UI.UxArp10HSipXr0UlM4.a3S6qv1u51f6',NOW(), NOW() FROM students;
+
+//insert mahasiswa dari tabel students (import dari API polines)
+INSERT INTO mahasiswa
+SELECT REPLACE(NIM,'.',''), Nama, IF(LEFT(NIM,1)='3',1,2) Prodi,Email FROM `students`;
+
+//assign roles mahasiswa dari tabel users dan mahasiswa
+INSERT INTO model_has_roles
+SELECT 2,'App\\Models\\User',U.id FROM `users` U JOIN students S ON U.email = S.Email;
+
+//buat user admin
+INSERT INTO `users`(`name`, `email`, `email_verified_at`, `password`, `remember_token`, `created_at`, `updated_at`) 
+SELECT 'admin-prodi','emailadminprodi@gmail.com',NOW(),'$2y$10$mFoIGQGbUg/7z7Q.wXIBLu8FzmnIltB87lGpL1igDzUwizabcTKMe','$2y$10$mFoIGQGbUg/7z7Q.wXIBLu8FzmnIltB87lGpL1igDzUwizabcTKMe',NOW(), NOW();
+
+//assign roles admin prodi
+INSERT INTO model_has_roles
+SELECT 4,'App\\Models\\User',U.id FROM `users` U WHERE U.email = 'emailadminprodi@gmail.com';
+
+
+
+//permission untuk tiap user. cancelled
+INSERT IGNORE INTO model_has_permissions
+SELECT id permission_id, 'App\\Models\\User', MR.model_id user_id
+FROM
+    `permissions`
+    LEFT JOIN model_has_roles MR
+    	ON MR.role_id = 3 -- ubah untuk semua role 1 per 1
+WHERE
+    menu_id IN(
+    SELECT
+        M.id
+    FROM
+        menus M
+    JOIN role_has_menus RM ON
+        M.id = RM.menu_id
+    WHERE
+        RM.role_id = 3 -- ubah untuk semua role 1 per 1
+)  
+ORDER BY `user_id` ASC;
